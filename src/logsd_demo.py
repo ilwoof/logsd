@@ -43,7 +43,7 @@ parser.add_argument("--pooling_mode", default="max", type=str, choices=["max", "
 # Dataset params
 parser.add_argument("--datasets", nargs="+", default=['bgl'], choices=['bgl', 'spirit', 'hdfs'], help='The dataset to be processed')
 parser.add_argument("--data_dir", default="../data/processed/", type=str)
-parser.add_argument("--session_size", nargs="+", default=[100], type=int, help='The target detection size')
+parser.add_argument("--session_size", nargs="+", default=[100], choices=[100, 60, 20], type=int, help='The target detection size')
 parser.add_argument("--window_size", default=100, choices=[100, 60, 20], type=int, help='The actual decomposed size')
 parser.add_argument("--stride", default=0, type=int, help='The sliding step size, 0 indicates equal to window size ')
 parser.add_argument("--without_duplicate", default=True, help='Use the dataset without consecutive duplicate events')
