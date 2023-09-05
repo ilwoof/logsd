@@ -11,8 +11,5 @@ For generating the data files, please refer to the implementation repo of [deep-
 
 ## Usage
 
-The simplest way of running CAT is to run `python logsd.py`.
+The simplest way of running LogSD is to run `python logsd.py`.
 
-
-## Contact
-If you have any questions, feel free to contact Yongzheng Xie through Email (yongzheng.xie@adelaide.edu.au) or Github issues.
