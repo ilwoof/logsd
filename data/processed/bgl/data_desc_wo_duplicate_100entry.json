@@ -1,0 +1,10 @@
+{
+    "log_file": "../../LogGT/dataset/raw//bgl/BGL.log_structured_wo_neighbouringduplicate.csv",
+    "max_template_size": 100,
+    "random_sessions": false,
+    "test_ratio": 0.2,
+    "train_anomaly_ratio": 1.0,
+    "train_ratio": null,
+    "window_range": 100,
+    "without_duplicate": true
+}
