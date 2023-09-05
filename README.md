@@ -1,4 +1,4 @@
-# logsd
+# LogSD
 LogSD: Detecting Anomalies from System Logs through Self-supervised Learning and Frequency-based Masking
 
 ## Data
