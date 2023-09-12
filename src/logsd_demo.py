@@ -63,8 +63,8 @@ parser.add_argument("--min_token_count", default=1, type=int)
 
 # Training params
 parser.add_argument("--semi_supervised", default=True)
-parser.add_argument("--no_validation", default=True)
-parser.add_argument("--train_ratio", default=0.8, type=float)
+parser.add_argument("--no_validation", action="store_true")
+parser.add_argument("--train_ratio", default=0.9, type=float)
 parser.add_argument("--sampling_size", default=1.0, type=float)
 parser.add_argument("--run_times", default=3, type=int)
 parser.add_argument("--epoches", default=100, type=int)
@@ -151,7 +151,7 @@ if __name__ == "__main__":
                     else:
                         dataset_train = [total_train[index] for index in tr_index]
 
-                    dataset_validation = [total_train[index] for index in va_index]
+                    dataset_validation = [total_train[index] for index in va_index if total_train[index]["window_anomalies"] == 0]
 
                     dataloader_validation = DataLoader(dataset_validation,
                                                        batch_size=params["batch_size"],
