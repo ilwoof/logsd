@@ -63,7 +63,7 @@ parser.add_argument("--min_token_count", default=1, type=int)
 
 # Training params
 parser.add_argument("--semi_supervised", default=True)
-parser.add_argument("--no_validation", action="store_true")
+parser.add_argument("--no_validation", default=True, action="store_true")
 parser.add_argument("--train_ratio", default=0.9, type=float)
 parser.add_argument("--sampling_size", default=1.0, type=float)
 parser.add_argument("--run_times", default=3, type=int)
