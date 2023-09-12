@@ -22,7 +22,7 @@ def dump_final_results(params, eval_results):
     benchmark_results = []
     timestamp = ['time']
     config_list = ['framework', 'datasource', 'dataset', 'session_size', 'window_size', 'stride', 'without_duplicate',
-                   'semi_supervised', 'embedding_type', 'encoder_type', 'kernel_sizes', 'pooling_mode',
+                   'semi_supervised', 'no_validation', 'embedding_type', 'encoder_type', 'kernel_sizes', 'pooling_mode',
                    'reconstruction_mode', 'masking_by', 'masking_ratio', 'loss_ablation', 'embedding_dim', 'hidden_size',
                    'alpha', 'beta', 'gamma', 'epoches', 'batch_size', 'learning_rate', 'patience']
     df_title = timestamp + config_list + metric_list
