@@ -145,11 +145,16 @@ class ForcastBasedModel(nn.Module):
         self.eval()  # set to evaluation mode
         with torch.no_grad():
             y_pred = []
+            valid_loss = 0
+            batch_cnt = 0
             store_dict = defaultdict(list)
             infer_start = time.time()
             for idx, batch_input in enumerate(test_loader):
                 return_dict = self.forward(self.__input2device(batch_input))
                 y_pred = return_dict["y_pred"]
+                if dtype == 'valid':
+                    valid_loss += return_dict["loss"].item()
+                    batch_cnt += 1
 
                 if self.encoder_type in ['linear', 'lstm', 'cnn']:
                     if self.eval_type == "session":
@@ -171,19 +176,22 @@ class ForcastBasedModel(nn.Module):
                 store_dict["window_preds"].extend(tensor2flatten_arr(y_pred))
             infer_end = time.time()
             logging.info("Finish inference [{:.2f}s]".format(infer_end - infer_start))
-            self.time_tracker["test"] = infer_end - infer_start
+            self.time_tracker[dtype] = infer_end - infer_start
 
-            store_df = pd.DataFrame(store_dict)
+            if dtype == 'valid':
+                return valid_loss/batch_cnt
+            else:
+                store_df = pd.DataFrame(store_dict)
 
-            use_cols = ["session_idx", "window_anomalies", "window_preds"]
-            session_df = (
-                store_df[use_cols]
-                .groupby("session_idx", as_index=False)
-                .max()  # most anomalous window
-            )
+                use_cols = ["session_idx", "window_anomalies", "window_preds"]
+                session_df = (
+                    store_df[use_cols]
+                    .groupby("session_idx", as_index=False)
+                    .max()  # most anomalous window
+                )
 
-            eval_results, pred_labels = seek_best_result(session_df)
-            return eval_results
+                eval_results, pred_labels = seek_best_result(session_df)
+                return eval_results
 
     def __evaluate_anomaly(self, test_loader, dtype="test"):
 
@@ -215,17 +223,17 @@ class ForcastBasedModel(nn.Module):
             session_df = store_df[use_cols].groupby("session_idx", as_index=False).sum()
             pred = (session_df[f"window_preds"] > 0).astype(int)
             y = (session_df["window_anomalies"] > 0).astype(int)
-
-            fpr_ab, tpr_ab, _ = roc_curve(y, pred)
-
+            precision, recall, _ = precision_recall_curve(y, pred)
             eval_results = {
                 "f1": f1_score(y, pred),
                 "rc": recall_score(y, pred),
                 "pc": precision_score(y, pred),
-                "roc": auc(fpr_ab, tpr_ab),
+                "apc": average_precision_score(y, pred),
+                "roc": roc_auc_score(y, pred),
+                "prc": auc(recall, precision),
                 "acc": accuracy_score(y, pred),
             }
-            logging.info({k: f"{v:.5f}" for k, v in eval_results.items()})
+            logging.info({k: f"{v:.4f}" for k, v in eval_results.items()})
             return eval_results
 
     def __evaluate_next_log(self, test_loader, dtype="test"):
@@ -304,10 +312,16 @@ class ForcastBasedModel(nn.Module):
                 pred = (session_df[f"window_pred_anomaly_{topk}"] > 0).astype(int)
                 y = (session_df["window_anomalies"] > 0).astype(int)
                 window_topk_acc = 1 - store_df["window_anomalies"].sum() / len(store_df)
+
+                precision, recall, _ = precision_recall_curve(y, pred)
                 eval_results = {
                     "f1": f1_score(y, pred),
                     "rc": recall_score(y, pred),
                     "pc": precision_score(y, pred),
+                    "apc": average_precision_score(y, pred),
+                    "roc": roc_auc_score(y, pred),
+                    "prc": auc(recall, precision),
+                    "acc": accuracy_score(y, pred),
                     "top{}-acc".format(topk): window_topk_acc,
                 }
                 logging.info({k: f"{v:.4f}" for k, v in eval_results.items()})
@@ -344,6 +358,7 @@ class ForcastBasedModel(nn.Module):
             )
         )
         best_f1 = -float("inf")
+        best_loss = float("inf")
         best_results = None
         worse_count = 0
 
@@ -383,21 +398,33 @@ class ForcastBasedModel(nn.Module):
 
             if validation_loader is not None:
                 testing_time = time.time()
-                eval_results = self.evaluate(validation_loader, dtype="validation")
-                self.time_tracker["validation"] = time.time() - testing_time
+                eval_results = self.evaluate(validation_loader, dtype="valid")
+                self.time_tracker["valid"] = time.time() - testing_time
             else:
                 testing_time = time.time()
                 eval_results = self.evaluate(test_loader, dtype="test")
                 self.time_tracker["test"] = time.time() - testing_time
 
-            if eval_results["f1"] > best_f1:
+            if validation_loader is None and eval_results["f1"] > best_f1:
                 best_f1 = eval_results["f1"]
                 best_results = eval_results
                 best_results["converge"] = int(epoch)
                 self.save_model()
                 worse_count = 0
+            elif validation_loader is not None:
+                if eval_results < best_loss:
+                    best_loss = eval_results
+                    self.save_model()
+                    worse_count = 0
+                else:
+                    worse_count += 1
+                    logging.info(f"{self.patience - worse_count} epoches left before early stop")
+                    if worse_count >= self.patience:
+                        logging.info("Early stop at epoch: {}".format(epoch))
+                        break
             else:
                 worse_count += 1
+                logging.info(f"{self.patience - worse_count} epoches left before early stop")
                 if worse_count >= self.patience:
                     logging.info("Early stop at epoch: {}".format(epoch))
                     break
