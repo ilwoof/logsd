@@ -10,7 +10,7 @@ We conducted an empirical study to evaluate the effectiveness of `LogSD` on thre
 
 ```
 ├─data  # Instances for log data.
-└─src├─deeploglizer├─  # PLELog main entrance.
+└─src├─deeploglizer├─  # LogSD main entrance.
      |             ├─common      # data preprocessing, data loader and common utils, etc.
      |             └─models      # Model, network modules, and loss design 
      ├─logsd_demo.py             # LogSD main entrance.     
