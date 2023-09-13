@@ -23,7 +23,7 @@ We conducted an empirical study to evaluate the effectiveness of `LogSD` on thre
 
 PyTorch v1.11.0 + (cu11.3)
 
-python v3.8.7
+python v3.8.6
 
 scikit-learn
 
