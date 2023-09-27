@@ -24,16 +24,16 @@ parser.add_argument("--embedding_dim", default=32, type=int)
 parser.add_argument("--num_layers", default=2, type=int)
 parser.add_argument("--encoder_type", default="cnn", type=str)
 
-parser.add_argument('--reconstruction_mode', default='global2local', type=str, choices=['global', 'local2local', 'global2local'], help='reconstruction paradigm')
-parser.add_argument('--masking_by', default='frequency', type=str, choices=['frequency', 'probability', 'no_masking'], help='The masking strategy')
+parser.add_argument('--reconstruction_mode', default='global2local', type=str, help='reconstruction paradigm')
+parser.add_argument('--masking_by', default='frequency', type=str, help='The masking strategy')
 parser.add_argument('--masking_mode', default='row_value_mask', help='Masking mode')
-parser.add_argument('--masking_ratio', default=-1.0, type=float, help='The ratio of masking when masking mode is enabled')  # -1.0 means randomly masking range from 0.1 to 0.5
+parser.add_argument('--masking_ratio', default=-1.0, type=float, help='The masking ratio')  # -1.0 randomly sampling from a set
 parser.add_argument('--session_level', default='entry', choices=['entry', 'secs'])
-parser.add_argument('--loss_ablation', default="all", type=str, choices=["all", "no_pj", 'no_oc', 'no_rect', 'rect_only', 'projection_only', 'oc_only'], help='Ablation loss test')
+parser.add_argument('--loss_ablation', default="all", type=str,  help='Ablation loss test')
 
-parser.add_argument('--alpha', default=50.0, type=float, choices=[0, 0.001, 0.01, 0.1, 1, 10, 50, 100], help='The weight for reconstruction loss')
-parser.add_argument('--beta', default=1.0, type=float, choices=[0, 0.001, 0.01, 0.1, 1, 10, 50, 100], help='The weight for projection loss')
-parser.add_argument('--gamma', default=1.0, type=float, choices=[0, 0.001, 0.01, 0.1, 1, 10, 50, 100], help='The weight for one-class loss')
+parser.add_argument('--alpha', default=50.0, type=float, help='The weight for reconstruction loss')
+parser.add_argument('--beta', default=1.0, type=float, help='The weight for projection loss')
+parser.add_argument('--gamma', default=1.0, type=float, help='The weight for one-class loss')
 
 # CNN model params
 parser.add_argument("--kernel_sizes", default=[2, 3, 4], type=int, nargs="+")
@@ -41,11 +41,11 @@ parser.add_argument("--decoder_type", default="deconv", type=str)
 parser.add_argument("--pooling_mode", default="max", type=str, choices=["max", "mean"])
 
 # Dataset params
-parser.add_argument("--datasets", nargs="+", default=['bgl'], choices=['bgl', 'spirit', 'hdfs'], help='The dataset to be processed')
+parser.add_argument("--datasets", nargs="+", default=['bgl'], choices=['hdfs', 'bgl', 'spirit'], help='The datasets')
 parser.add_argument("--data_dir", default="../data/processed/", type=str)
-parser.add_argument("--session_size", nargs="+", default=[100], choices=[100, 60, 20], type=int, help='The target detection size')
+parser.add_argument("--session_size", nargs="+", default=[100], type=int, help='The target detection size')
 parser.add_argument("--window_size", default=100, choices=[100, 60, 20], type=int, help='The actual decomposed size')
-parser.add_argument("--stride", default=0, type=int, help='The sliding step size, 0 indicates equal to window size ')
+parser.add_argument("--stride", default=0, type=int, help='The sliding step size')  # 0 indicates equal to window size
 parser.add_argument("--without_duplicate", default=True, help='Use the dataset without consecutive duplicate events')
 
 # Input params
@@ -64,7 +64,7 @@ parser.add_argument("--min_token_count", default=1, type=int)
 # Training params
 parser.add_argument("--semi_supervised", default=True)
 parser.add_argument("--no_validation", default=True, action="store_true")
-parser.add_argument("--train_ratio", default=0.8, type=float)
+parser.add_argument("--train_ratio", default=0.8, type=float)  # The splitting ratio between training and validation
 parser.add_argument("--sampling_size", default=1.0, type=float)
 parser.add_argument("--run_times", default=3, type=int)
 parser.add_argument("--epoches", default=100, type=int)
@@ -105,6 +105,7 @@ if __name__ == "__main__":
         assert params['window_size'] >= params['stride']
 
         for window_size in session_windows:
+
             data_path = os.path.join(args.data_dir, f"{dataset}")
 
             raw_session_train, raw_session_test, session_size = load_sessions(data_dir=data_path,
