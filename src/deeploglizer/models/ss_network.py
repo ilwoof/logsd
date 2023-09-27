@@ -1,8 +1,5 @@
-import torch
-import torch.nn.functional as F
 from torch import nn
-
-from src.deeploglizer.common.utils import new_mask_feature, mask_vectors_in_batch_by_duplicate_node
+from src.deeploglizer.common.utils import mask_vectors_in_batch_by_duplicate_node
 from src.deeploglizer.models import ForcastBasedModel
 from src.deeploglizer.models.module import Encoder, Decoder
 
@@ -36,7 +33,6 @@ class SS_Net(ForcastBasedModel):
         patience=3,
         batch_size=64,
         window_size=500,
-        epoches=100,
         warmup_epoch=3,
         peak_lr=1e-2,
         end_lr=2e-4,
@@ -79,7 +75,6 @@ class SS_Net(ForcastBasedModel):
         self.decoder_type = decoder_type
         self.kernel_sizes = kernel_sizes
         self.pooling_mode = pooling_mode
-        # self.act_function = nn.LeakyReLU(inplace=True, negative_slope=2.5e-1)  # nn.ReLU()
         self.reconstruction_mode = reconstruction_mode
         self.masking_by = masking_by
         self.masking_mode = masking_mode
@@ -127,61 +122,42 @@ class SS_Net(ForcastBasedModel):
         self.criterion = nn.MSELoss(reduction="none")
 
     def forward(self, input_dict):
-        if self.encoder_type == 'cnn':
-            x = input_dict["features"]
-            if self.embedding_dim == 1:
-                x = x.unsqueeze(-1)
-            else:
-                x = self.embedder(x).float()
-            if self.masking_by == 'probability':
-                masked_x, mask = new_mask_feature(x, mode='row', p=self.masking_ratio, fill_value=0.0)
-            elif self.masking_by == 'frequency':
-                masked_x, mask = mask_vectors_in_batch_by_duplicate_node(x, p=self.masking_ratio, fill_value=0.0)
-            else:  # self.masking_by == 'no_masking':
-                masked_x = x
-                mask = torch.ones_like(x, dtype=torch.bool, device=x.device)
 
-        if self.encoder_type == 'cnn':
-            x = x.unsqueeze(1).repeat(1, len(self.kernel_sizes), 1, 1)
-            mask = mask.unsqueeze(1).repeat(1, len(self.kernel_sizes), 1, 1)
-            masked_x = masked_x.unsqueeze(1).repeat(1, len(self.kernel_sizes), 1, 1)
+        x = input_dict["features"]
 
-            if self.reconstruction_mode in ['global', 'global2local'] or self.masking_by == 'no_masking' or self.masking_ratio == 0.0:
-                z, _, pooled_z = self.encoder1(x)
-            else:
-                z, _, pooled_z = self.encoder1(masked_x)
-            masked_z, _, pooled_masked_z = self.encoder2(masked_x)
-            x_recst = self.decoder(z)
-
-            if self.reconstruction_mode in ['global'] or self.masking_by == 'no_masking' or self.masking_ratio == 0.0:
-                rect_error = self.criterion(x, x_recst).mean(dim=-1).mean(dim=-1).mean(dim=-1)
-            else:
-                rect_error = self.criterion(x.masked_fill(mask, 0), x_recst.masked_fill(mask, 0)).mean(dim=-1).mean(dim=-1).mean(dim=-1)
-
-            if self.loss_ablation in ['no_rect', 'projection_only']:
-                pred = self.criterion(pooled_z, pooled_masked_z).mean(dim=-1)
-            else:
-                pred = self.criterion(pooled_z.detach(), pooled_masked_z).mean(dim=-1)
-
-            oc_dist = self.criterion(pooled_z, self.center.detach()).mean(dim=-1)
-
-        if self.loss_ablation == 'no_pj':
-            loss = self.alpha * rect_error.mean() + self.gmma * oc_dist.mean()
-        elif self.loss_ablation == 'no_oc':
-            loss = self.alpha * rect_error.mean() + self.beta * pred.mean()
-        elif self.loss_ablation == 'no_rect':
-            loss = self.beta * pred.mean() + self.gmma * oc_dist.mean()
-        elif self.loss_ablation == 'all':
-            loss = self.alpha * rect_error.mean() + self.beta * pred.mean() + self.gamma * oc_dist.mean()
-        elif self.loss_ablation == 'rect_only':
-            loss = rect_error.mean()
-        elif self.loss_ablation == 'oc_only':
-            loss = oc_dist.mean()
-        elif self.loss_ablation == 'projection_only':
-            loss = pred.mean()
+        if self.embedding_dim == 1:
+            x = x.unsqueeze(-1)
         else:
-            RuntimeError("The specified loss is not supported!")
+            x = self.embedder(x).float()
 
-        return_dict = {"loss": loss, "y_pred": pred, "n_center": pooled_z, "r_loss": rect_error.mean()*1000, "p_loss": pred.mean()*100, "o_loss": oc_dist.mean()}
+        masked_x, mask = mask_vectors_in_batch_by_duplicate_node(x, p=self.masking_ratio, fill_value=0.0)
+
+        # expand to multiple channels
+        x = x.unsqueeze(1).repeat(1, len(self.kernel_sizes), 1, 1)
+
+        mask = mask.unsqueeze(1).repeat(1, len(self.kernel_sizes), 1, 1)
+
+        masked_x = masked_x.unsqueeze(1).repeat(1, len(self.kernel_sizes), 1, 1)
+
+        # global input for the auto-encoder network
+        z, _, pooled_z = self.encoder1(x)
+        x_recst = self.decoder(z)
+
+        # masked input for the encoder-only network
+        masked_z, _, pooled_masked_z = self.encoder2(masked_x)
+
+        # global2local reconstruction error
+        rect_error = self.criterion(x.masked_fill(mask, 0), x_recst.masked_fill(mask, 0)).mean(dim=-1).mean(dim=-1).mean(dim=-1)
+
+        # prediction (knowledge distillation) error
+        pred = pj_error = self.criterion(pooled_z.detach(), pooled_masked_z).mean(dim=-1)
+
+        # one-class classification error
+        oc_dist = self.criterion(pooled_z, self.center.detach()).mean(dim=-1)
+
+        # the composite loss, default alpha is 50, beta and gamma is 1
+        loss = self.alpha * rect_error.mean() + self.beta * pj_error.mean() + self.gamma * oc_dist.mean()
+
+        return_dict = {"loss": loss, "y_pred": pred, "n_center": pooled_z, "r_loss": rect_error.mean(), "p_loss": pred.mean(), "o_loss": oc_dist.mean()}
 
         return return_dict
