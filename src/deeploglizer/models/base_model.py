@@ -14,7 +14,8 @@ from sklearn.metrics import (accuracy_score,
                              auc,
                              precision_recall_curve,
                              roc_auc_score,
-                             average_precision_score)
+                             average_precision_score,
+                             matthews_corrcoef)
 
 from src.deeploglizer.common.utils import set_device, tensor2flatten_arr
 from src.deeploglizer.common.lr import PolynomialDecayLR
@@ -481,6 +482,7 @@ def seek_best_result(session_df):
         "roc": 0.0,
         "apc": 0.0,
         "acc": 0.0,
+        "mcc": 0.0,
     }
     best_anomaly_ratio = 0.0
     best_pred = []
@@ -506,6 +508,7 @@ def seek_best_result(session_df):
             "roc": roc_auc,
             "apc": apc_score,
             "acc": accuracy_score(y, pred),
+            "mcc": matthews_corrcoef(y, pred),
         }
         if eval_results['f1'] > best_results['f1']:
             best_results = eval_results.copy()
