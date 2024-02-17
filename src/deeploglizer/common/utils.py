@@ -16,7 +16,7 @@ import umap.plot
 import matplotlib.pyplot as plt
 
 
-metric_list = ['pc', 'rc', 'f1', 'prc', 'roc', 'apc', 'acc', 'trt', 'tst']
+metric_list = ['pc', 'rc', 'f1', 'prc', 'roc', 'apc', 'acc', 'mcc', 'trt', 'tst']
 
 def dump_final_results(params, eval_results):
     benchmark_results = []
