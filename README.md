@@ -59,6 +59,12 @@ The simplest way of running LogSD is to run `python logsd.py`.
 | **LogSD<sub>dff</sub>** | **0.9559**   | **0.9583**  | **0.9587**          | 0.9580      | **0.9840**   | 0.9993   | 0.9483  | **0.9627** | **0.9600**         | 0.9664     | **0.9716**  | **0.9977**  | **0.8954**     | **0.8957**    | 0.8386            | 0.9650        |  0.7346   | **0.9927**  |
 
 ## Sensitivity Experiments (supplementary data)
+
+<p align="center">
+<img src=".\pic\masking_sensitivity_bgl.png" height = "200" alt="" align=center />
+</p>
+
+
 - The performance under different masking rates On the BGL-60logs setting
 
 | Method |Masking Rate <br> Setting |BGL-60logs <br> MCC|BGL-60logs <br> F1 |BGL-60logs <br> Precision|BGL-60logs <br> Recall |BGL-60logs <br> PRC |BGL-60logs <br> ROC |
