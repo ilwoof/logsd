@@ -60,13 +60,13 @@ The simplest way of running LogSD is to run `python logsd.py`.
 
 ## Sensitivity Experiments (supplementary data)
 
-- The performance under different masking rates On the different window settings of BGL dataset 
+- The performance under different masking rates on the different window settings of BGL dataset 
 <p align="center">
 <img src=".\pic\masking_sensitivity_bgl.png" height = "200" alt="" align=center />
 </p>
 
 
-- The performance under different masking rates On the BGL-60logs setting
+- The detailed performance under different masking rates on the BGL-60logs setting
 
 | Method |Masking Rate <br> Setting |BGL-60logs <br> MCC|BGL-60logs <br> F1 |BGL-60logs <br> Precision|BGL-60logs <br> Recall |BGL-60logs <br> PRC |BGL-60logs <br> ROC |
 |--------|:---------------------- |:--------------|:-------------- |:--------------|:------------- |:-------------- |:------------- |
