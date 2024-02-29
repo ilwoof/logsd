@@ -60,6 +60,7 @@ The simplest way of running LogSD is to run `python logsd.py`.
 
 ## Sensitivity Experiments (supplementary data)
 
+- The performance under different masking rates On the different window settings of BGL dataset 
 <p align="center">
 <img src=".\pic\masking_sensitivity_bgl.png" height = "200" alt="" align=center />
 </p>
